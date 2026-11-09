@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 110" width="640" height="110">
+  <defs>
+    <linearGradient id="gradIcon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5" />
+      <stop offset="100%" stop-color="#06B6D4" />
+    </linearGradient>
+    <linearGradient id="gradText" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3B82F6" />
+      <stop offset="100%" stop-color="#6366F1" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#4F46E5" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <!-- Icon: Modern Search Lens with Time Arrow -->
+  <g transform="translate(25, 10)" filter="url(#shadow)">
+    <!-- Outer Lens Ring -->
+    <circle cx="45" cy="45" r="34" fill="none" stroke="url(#gradIcon)" stroke-width="9" stroke-linecap="round"/>
+    
+    <!-- Inner Rewind/Clock Arc -->
+    <path d="M 45 25 A 20 20 0 1 0 65 45" fill="none" stroke="#38BDF8" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="6 3"/>
+    
+    <!-- Clock Hands (Pointing back - Yesterday) -->
+    <line x1="45" y1="45" x2="32" y2="45" stroke="#818CF8" stroke-width="5" stroke-linecap="round"/>
+    <line x1="45" y1="45" x2="45" y2="32" stroke="#818CF8" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="45" cy="45" r="4.5" fill="#6366F1"/>
+
+    <!-- Handle -->
+    <line x1="70" y1="70" x2="92" y2="92" stroke="url(#gradIcon)" stroke-width="10" stroke-linecap="round"/>
+  </g>
+
+  <!-- Typography: Yesterday Search -->
+  <g transform="translate(145, 74)">
+    <text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="56" font-weight="800" fill="url(#gradText)" letter-spacing="-0.5">Yesterday</text>
+    <text x="265" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="56" font-weight="300" fill="#0EA5E9" letter-spacing="1">Search</text>
+  </g>
+</svg>
