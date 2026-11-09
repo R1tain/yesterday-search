@@ -2,6 +2,7 @@ import os
 from searx.webapp import app as _flask_app
 
 PROXY_SECRET = os.environ.get("SEARXNG_PROXY_SECRET", "yesterday_search_cf_worker_auth_2026")
+BASE_URL = os.environ.get("SEARXNG_BASE_URL", "/").rstrip("/")
 
 def application(environ, start_response):
     # Pass-through if no secret is configured
@@ -19,22 +20,23 @@ def application(environ, start_response):
     if token == PROXY_SECRET:
         return _flask_app(environ, start_response)
 
-    # Direct access: Redirect GET/HEAD requests to official domain
+    # Direct access: Redirect GET/HEAD requests to configured base url
     method = environ.get("REQUEST_METHOD", "GET")
     query = environ.get("QUERY_STRING", "")
     full_path = path + ("?" + query if query else "")
 
+    official_base = BASE_URL if BASE_URL.startswith("http") else "/"
     if method in ("GET", "HEAD"):
-        target = f"https://search.yester-day.de{full_path}"
+        target = f"{official_base}{full_path}"
         start_response("302 Found", [
             ("Location", target),
             ("Content-Type", "text/html; charset=utf-8"),
             ("Cache-Control", "no-cache")
         ])
-        return [b'<html><head><meta http-equiv="refresh" content="0;url=' + target.encode() + b'"></head><body>Redirecting to <a href="' + target.encode() + b'">search.yester-day.de</a>...</body></html>']
+        return [b'<html><head><meta http-equiv="refresh" content="0;url=' + target.encode() + b'"></head><body>Redirecting to <a href="' + target.encode() + b'">Official Site</a>...</body></html>']
 
     # For non-GET direct access, return 403 Forbidden
     start_response("403 Forbidden", [("Content-Type", "text/plain; charset=utf-8")])
-    return [b"403 Forbidden: Direct access not allowed. Please use https://search.yester-day.de"]
+    return [b"403 Forbidden: Direct access not allowed."]
 
 app = application
