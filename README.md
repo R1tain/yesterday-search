@@ -30,29 +30,75 @@ flowchart LR
 
 ---
 
-## 🚀 部署配置参考
+## 🚀 部署配置指南
 
-### 1. 容器镜像信息
-- **Registry**: GitHub Container Registry (`ghcr.io`)
-- **Image**: `ghcr.io/r1tain/yesterday-search:latest`
-- **内部监听端口**: `8080` (HTTP)
+完整部署由两部分组成：**后端容器（Koyeb）** 与 **前端边缘反代（Cloudflare Worker）**。
 
-### 2. Koyeb 服务环境变量 (Environment Variables)
+### 第一部分：部署 Koyeb 后端实例
+
+1. 登录 [Koyeb 控制台](https://app.koyeb.com/)，点击 **Create Service**。
+2. 选择 **Docker Image** 部署模式：
+   - **Image**: `ghcr.io/r1tain/yesterday-search:latest`
+   - **Instance Type**: `Nano`（免费档位：0.1 vCPU / 512MB RAM）
+   - **Exposed Port**: `8080` (HTTP)
+3. 在 **Environment Variables** 添加以下环境变量：
 
 | 变量名 | 推荐设定值 | 说明 |
 | :--- | :--- | :--- |
-| `SEARXNG_BASE_URL` | `https://search.yourdomain.com/` | 站点公开主域名（末尾必须带斜杠 `/`） |
-| `SEARXNG_SECRET` | 随机强密码（如 32 位 Hex） | 会话加密密钥 |
+| `SEARXNG_BASE_URL` | `https://search.yourdomain.com/` | 你的前端公开主域名（末尾必须带斜杠 `/`） |
+| `SEARXNG_SECRET` | 随机生成 32 位 Hex 字符 | 会话与 Cookie 加密密钥 |
 | `GRANIAN_WORKERS` | `1` | 适配 Koyeb Nano 单核限制 |
 | `GRANIAN_BLOCKING_THREADS` | `2` | 异步 IO 阻断线程数 |
 
-### 3. GitHub Actions 自动更新机密 (Repository Secrets)
+4. 点击 **Deploy**，部署成功后复制分配的域名（例如 `your-app-subdomain.koyeb.app`）。
 
-仓库已集成无人值守 CI/CD 流水线，如需自动构建并触发部署，在仓库 **Settings -> Secrets and variables -> Actions** 中配置：
+---
 
-- `GH_PAT`: 拥有 `write:packages` 权限的 GitHub Personal Access Token（用于登录推送 GHCR 镜像）。
-- `KOYEB_API_TOKEN`: Koyeb 账号的 API Token。
-- `KOYEB_SERVICE_ID`: Koyeb 上对应的服务 UUID。
+### 第二部分：部署 Cloudflare Worker（边缘加速与反代）
+
+项目在 [`cloudflare/`](cloudflare/) 目录中已内置全套生产就绪的 Worker 脚本代码与配置文件。
+
+#### 功能作用：
+- **全球边缘加速**：自动缓存 CSS、JS、字体与图片，响应速度可达个位数毫秒。
+- **冷启动容错**：若后端容器睡眠或重载，自动执行 3 次重试并展示优雅的启动过渡倒计时页面。
+- **安全握手**：向上游注入 `X-Proxy-Secret` 头，与后端的 ProxyGuard 协同彻底封死 Koyeb 域名的公开暴露。
+- **Cookie 完整保留**：多 Set-Cookie 原生穿透，确保用户搜索偏好与主题持久生效。
+
+#### 部署方式 A：Cloudflare 控制台 Web UI（最简便）
+
+1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com/) ➔ 进入 **Workers & Pages** ➔ **Create application** ➔ **Create Worker**。
+2. 命名为 `yesterday-search`，点击 **Deploy**。
+3. 点击 **Edit code**，将本项目 [`cloudflare/worker.js`](cloudflare/worker.js) 中的代码完整粘贴并覆盖，点击右上角 **Deploy**。
+4. 返回该 Worker 的 **Settings** ➔ **Variables and Secrets** ➔ 添加以下环境变量：
+   - `UPSTREAM_HOST`: 填入你的 Koyeb 分配域名，例如 `your-app-subdomain.koyeb.app`（必填，无需加 `https://`）。
+   - `PROXY_SECRET`: 填入 `yesterday_search_cf_worker_auth_2026`（必填，需与后端中间件一致）。
+   - `ACCESS_TOKEN`: 仅在需要开启**私人专属访问**时配置，留空则为公网全开放。
+5. 在 **Settings** ➔ **Domains & Routes** ➔ **Add** 绑定你的自定义域名（例如 `search.yourdomain.com`）。
+
+#### 部署方式 B：Wrangler CLI（本地命令行）
+
+```bash
+cd cloudflare
+
+# 1. 复制配置文件模板
+cp wrangler.toml.example wrangler.toml
+
+# 2. 修改 wrangler.toml 中的 UPSTREAM_HOST 为你的 Koyeb 域名
+# 3. 执行一键发布
+npx wrangler deploy
+```
+
+---
+
+### 第三部分：配置 GitHub Actions 自动更新流水线
+
+仓库已集成无人值守 CI/CD，每天上午 11:00（UTC 03:00）自动拉取官方最新补丁构建镜像，并免缓存滚动重启 Koyeb 服务。
+
+在 GitHub 仓库 **Settings -> Secrets and variables -> Actions** 中配置：
+
+- `GH_PAT`: 拥有 `write:packages` 权限的 GitHub Personal Access Token（用于推送 GHCR 镜像）。
+- `KOYEB_API_TOKEN`: Koyeb 账号的 API Token（在 Koyeb 个人中心 User Settings ➔ API 创建）。
+- `KOYEB_SERVICE_ID`: Koyeb 服务的 UUID（可在 Koyeb 服务详情页 URL 或 Settings 复制）。
 
 ---
 
@@ -88,7 +134,10 @@ print(results)
 ## 🔒 安全与访问控制
 
 - **公共模式（默认）**：所有用户与 AI 可直接访问进行无限制检索。
-- **私人专属模式**：可在 Cloudflare Worker 中添加环境变量 `ACCESS_TOKEN`。配置后，未授权访客访问将显示 `404 Not Found` 伪装不存在，仅凭口令 Cookie 或 Bearer Token 能够使用。
+- **私人专属模式**：在 Cloudflare Worker 中添加环境变量 `ACCESS_TOKEN`。配置后：
+  - 外部未授权访客访问返回 `404 Not Found` 伪装不存在；
+  - 授权访客首次带口令访问 `https://search.yourdomain.com/?token=<your-access-token>` 自动签发安全 Cookie 即可畅行无阻；
+  - AI 客户端可通过 Header `Authorization: Bearer <your-access-token>` 免 Cookie 直连调用。
 
 ---
 

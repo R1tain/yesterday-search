@@ -1,0 +1,18 @@
+name = "yesterday-search"
+main = "worker.js"
+compatibility_date = "2024-09-23"
+
+# 绑定自定义域名示例：
+# routes = [
+#   { pattern = "search.yourdomain.com", custom_domain = true }
+# ]
+
+[vars]
+# Koyeb 后端应用主机名（必须替换为您在 Koyeb 部署的实际域名）
+UPSTREAM_HOST = "your-app-subdomain.koyeb.app"
+
+# 后端 ProxyGuard 鉴权签名密钥（需与容器环境变量一致）
+PROXY_SECRET = "yesterday_search_cf_worker_auth_2026"
+
+# 可选：开启私有访问保护口令（留空则为公网全开放模式）
+# ACCESS_TOKEN = "your-strong-random-access-token"
