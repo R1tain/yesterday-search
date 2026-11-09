@@ -59,6 +59,7 @@ jobs:
             curl -s -f -X POST \
               -H "Authorization: Bearer $KOYEB_TOKEN" \
               -H "Content-Type: application/json" \
+              -d '{"skip_cache": true}' \
               "https://app.koyeb.com/v1/services/$SERVICE_ID/redeploy"
             echo "Koyeb redeployment successfully triggered!"
           else
